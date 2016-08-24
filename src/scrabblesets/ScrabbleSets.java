@@ -8,9 +8,9 @@ import static java.util.function.Function.identity;
 import static java.util.stream.Collectors.*;
 
 class ScrabbleSets {
-    private final Map<Character, Long> bag;
+    private final TileSet bag;
 
-    ScrabbleSets(Map<Character, Long> bag) {
+    ScrabbleSets(TileSet bag) {
         this.bag = bag;
     }
 
@@ -23,7 +23,7 @@ class ScrabbleSets {
     }
 
     private Map<Character, Long> mergeMaps(final String input) {
-        return Stream.of(bag, groupByFrequency(input))
+        return Stream.of(bag.get(), groupByFrequency(input))
                 .flatMap(map -> map.entrySet().stream())
                 .collect(toMap(Map.Entry::getKey, Map.Entry::getValue, (val1, val2) -> val1 - val2));
     }
