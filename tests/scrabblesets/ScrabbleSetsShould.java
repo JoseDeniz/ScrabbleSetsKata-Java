@@ -1,5 +1,6 @@
 package scrabblesets;
 
+import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -7,19 +8,15 @@ import org.junit.runners.Parameterized;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Map.Entry;
-import java.util.stream.Stream;
 
-import static java.lang.String.format;
-import static java.lang.String.valueOf;
 import static java.util.Arrays.asList;
-import static java.util.function.Function.identity;
-import static java.util.stream.Collectors.*;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 @RunWith(Parameterized.class)
 public class ScrabbleSetsShould {
+
+    private ScrabbleSets scrabbleSets;
 
     @Parameterized.Parameters
     public static Collection<Object[]> data() {
@@ -82,35 +79,14 @@ public class ScrabbleSetsShould {
         bag.put('_', 2L);
     }
 
-    @Test
-    public void return_the_remaining_tiles_in_the_bag() {
-        assertThat(tilesLeft(input), is(expectedOutput));
+    @Before
+    public void setUp() throws Exception {
+        scrabbleSets = new ScrabbleSets(bag);
     }
 
-    private String tilesLeft(String input) {
-        Map<Character, Long> inputOccurrences = input
-                .chars()
-                .mapToObj(c -> (char) c)
-                .collect(groupingBy(identity(), counting()));
-
-        Map<Character, Long> subtractValues = Stream.of(bag, inputOccurrences)
-                .flatMap(map -> map.entrySet().stream())
-                .collect(toMap(Entry::getKey, Entry::getValue, (val1, val2) -> val1 - val2));
-
-        if (subtractValues.entrySet().stream().anyMatch(e -> e.getValue() < 0)) {
-            return "Invalid input. More X's have been taken from the bag than possible.";
-        }
-
-        Map<Long, String> collect = subtractValues.entrySet().stream()
-                .filter(entrySet -> entrySet.getValue() >= 0)
-                .collect(groupingBy(Entry::getValue, mapping(e -> valueOf(e.getKey()), joining(", "))));
-
-        String formatEntries = collect.entrySet().stream()
-                .sorted((left, right) -> right.getKey().compareTo(left.getKey()))
-                .map(e -> format("%d: %s", e.getKey(), e.getValue()))
-                .collect(joining("\n"));
-
-        return formatEntries;
+    @Test
+    public void return_the_remaining_tiles_in_the_bag() {
+        assertThat(scrabbleSets.tilesLeft(input), is(expectedOutput));
     }
 
 }
