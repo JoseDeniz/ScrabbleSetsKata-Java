@@ -1,6 +1,7 @@
 package scrabblesets;
 
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.stream.Stream;
 
 import static java.lang.String.format;
@@ -15,17 +16,17 @@ class ScrabbleSets {
     }
 
     String tilesLeft(String input) {
-        Map<Character, Long> remainingTiles = mergeMaps(input);
+        Map<Character, Long> remainingTiles = mergeMaps(groupByFrequency(input));
         if (aTileHasTakenMoreThanPossible(remainingTiles)) {
             return errorMessage();
         }
         return formatOutput(invertMap(remainingTiles));
     }
 
-    private Map<Character, Long> mergeMaps(final String input) {
-        return Stream.of(bag.get(), groupByFrequency(input))
+    private Map<Character, Long> mergeMaps(Map<Character, Long> characterFrequencyMap) {
+        return Stream.of(bag.get(), characterFrequencyMap)
                 .flatMap(map -> map.entrySet().stream())
-                .collect(toMap(Map.Entry::getKey, Map.Entry::getValue, (val1, val2) -> val1 - val2));
+                .collect(toMap(Entry::getKey, Entry::getValue, (val1, val2) -> val1 - val2));
     }
 
     private Map<Character, Long> groupByFrequency(final String input) {
@@ -45,7 +46,7 @@ class ScrabbleSets {
     private Map<Long, String> invertMap(Map<Character, Long> remainingTiles) {
         return remainingTiles.entrySet().stream()
                 .filter(entrySet -> entrySet.getValue() >= 0)
-                .collect(groupingBy(Map.Entry::getValue, mapping(e -> e.getKey().toString(), joining(", "))));
+                .collect(groupingBy(Entry::getValue, mapping(e -> e.getKey().toString(), joining(", "))));
     }
 
     private String formatOutput(Map<Long, String> collect) {
