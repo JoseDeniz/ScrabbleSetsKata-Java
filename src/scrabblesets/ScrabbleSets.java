@@ -1,11 +1,15 @@
 package scrabblesets;
 
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.stream.Stream;
+import java.util.Optional;
+import java.util.function.Function;
+import java.util.function.Supplier;
+import java.util.stream.Collector;
 
-import static java.lang.String.format;
-import static java.util.function.Function.identity;
+import static java.lang.Boolean.FALSE;
+import static java.lang.Boolean.TRUE;
 import static java.util.stream.Collectors.*;
 
 class ScrabbleSets {
@@ -16,44 +20,50 @@ class ScrabbleSets {
     }
 
     String tilesLeft(String input) {
-        Map<Character, Long> remainingTiles = mergeMaps(groupByFrequency(input));
-        if (aTileHasTakenMoreThanPossible(remainingTiles)) {
-            return errorMessage(remainingTiles);
-        }
-        return formatOutput(invertMap(remainingTiles));
+        return bag.get().entrySet().stream()
+                .map(e -> subtractOccurrences(input, e))
+                .collect(collectingAndThen(partitioningBy(this::isTakenMoreThanPossible), checkAndFormatOutput()));
     }
 
-    private Map<Character, Long> mergeMaps(Map<Character, Long> characterFrequencyMap) {
-        return Stream.of(bag.get(), characterFrequencyMap)
-                .flatMap(map -> map.entrySet().stream())
-                .collect(toMap(Entry::getKey, Entry::getValue, (val1, val2) -> val1 - val2));
+    private Entry<Character, Long> subtractOccurrences(String input, Entry<Character, Long> entry) {
+        input.chars().mapToObj(c -> ((char) c)).forEach(c -> {
+            if (entry.getKey() == c) {
+                entry.setValue(entry.getValue() - 1);
+            }
+        });
+        return entry;
     }
 
-    private Map<Character, Long> groupByFrequency(final String input) {
-        return input.chars()
-                    .mapToObj(c -> (char) c)
-                    .collect(groupingBy(identity(), counting()));
+    private Boolean isTakenMoreThanPossible(Entry<Character, Long> e) {
+        return e.getValue() < 0;
     }
 
-    private boolean aTileHasTakenMoreThanPossible(Map<Character, Long> remainingTiles) {
-        return remainingTiles.entrySet().stream().anyMatch(e -> e.getValue() < 0);
+    private Function<Map<Boolean, List<Entry<Character, Long>>>, String> checkAndFormatOutput() {
+        return partitioned -> Optional.ofNullable(checkTakenFrom(partitioned)).orElseGet(formatMap(partitioned));
     }
 
-    private String errorMessage(Map<Character, Long> remainingTiles) {
-        Entry<Character, Long> tile = remainingTiles.entrySet().stream().filter(e -> e.getValue() < 0).findFirst().get();
-        return format("Invalid input. More %c's have been taken from the bag than possible.", tile.getKey());
+    private String checkTakenFrom(Map<Boolean, List<Entry<Character, Long>>> partitioned) {
+        List<Entry<Character, Long>> moreTaken = partitioned.get(TRUE);
+        return !moreTaken.isEmpty()
+                ? String.format("Invalid input. More %c's have been taken from the bag than possible.", moreTaken.get(0).getKey())
+                : null;
     }
 
-    private Map<Long, String> invertMap(Map<Character, Long> remainingTiles) {
-        return remainingTiles.entrySet().stream()
-                .filter(entrySet -> entrySet.getValue() >= 0)
-                .collect(groupingBy(Entry::getValue, mapping(e -> e.getKey().toString(), joining(", "))));
+    private Supplier<String> formatMap(Map<Boolean, List<Entry<Character, Long>>> partitioned) {
+        return () -> partitioned.get(FALSE).stream()
+                .collect(collectingAndThen(groupByValues(), this::formatOutput));
     }
 
-    private String formatOutput(Map<Long, String> collect) {
-        return collect.entrySet().stream()
+    private Collector<Entry<Character, Long>, ?, Map<Long, String>> groupByValues() {
+        return groupingBy(Entry::getValue, mapping(e -> e.getKey().toString(), joining(", ")));
+    }
+
+    private String formatOutput(Map<Long, String> map) {
+        return map.entrySet()
+                .stream()
                 .sorted((left, right) -> right.getKey().compareTo(left.getKey()))
-                .map(e -> format("%d: %s", e.getKey(), e.getValue()))
+                .map(e -> String.format("%d: %s", e.getKey(), e.getValue()))
                 .collect(joining("\n"));
     }
+
 }
