@@ -18,7 +18,7 @@ class ScrabbleSets {
     String tilesLeft(String input) {
         Map<Character, Long> remainingTiles = mergeMaps(groupByFrequency(input));
         if (aTileHasTakenMoreThanPossible(remainingTiles)) {
-            return errorMessage();
+            return errorMessage(remainingTiles);
         }
         return formatOutput(invertMap(remainingTiles));
     }
@@ -39,8 +39,9 @@ class ScrabbleSets {
         return remainingTiles.entrySet().stream().anyMatch(e -> e.getValue() < 0);
     }
 
-    private String errorMessage() {
-        return "Invalid input. More X's have been taken from the bag than possible.";
+    private String errorMessage(Map<Character, Long> remainingTiles) {
+        Entry<Character, Long> tile = remainingTiles.entrySet().stream().filter(e -> e.getValue() < 0).findFirst().get();
+        return format("Invalid input. More %c's have been taken from the bag than possible.", tile.getKey());
     }
 
     private Map<Long, String> invertMap(Map<Character, Long> remainingTiles) {
